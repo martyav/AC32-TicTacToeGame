@@ -1,172 +1,164 @@
 //
 //  ViewController.swift
-//  TicTacGame
+//  TicTacToe
 //
-//  Created by Jason Wang on 9/20/16.
-//  Copyright © 2016 Jason Wang. All rights reserved.
+//  Created by Marty Avedon on 9/20/16.
+//  Copyright © 2016 Marty Avedon. All rights reserved.
 //
 
 import UIKit
-
 class GameBoardController: UIViewController {
-
-    var isPlayerOne = true
-
-    let game = TicTacToe()
-
-    let resetGameTitleName = "Player1: Red  |  Player2: Green"
-    var gameTitleLabel: UILabel = {
-        let label = UILabel()
-        label.textColor = .blackColor()
-        label.translatesAutoresizingMaskIntoConstraints = false
-        label.textAlignment = .Center
-        return label
-    }()
-
-    var containerView: UIView = {
-        let view = UIView()
-        view.translatesAutoresizingMaskIntoConstraints = false
-        return view
-    }()
-
-    let resetButtonName = "Reset Game"
-    let resetButton: UIButton = {
-        let button = UIButton(type: .System)
-        button.translatesAutoresizingMaskIntoConstraints = false
-        return button
-    }()
-
-
-    // MARK: - View Life Cycle
+    
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.backgroundColor = .whiteColor()
+        view.backgroundColor = .black
         setupGameBoard()
     }
-
-    // MARK: - SetupGame
+    
+    var isFirst = false
+    
+    var ticTacState = [[State]]()
+    
+    enum State {
+        case empty
+        case p1
+        case p2
+    }
+    
     func setupGameBoard() {
-        setupContainerView()
-        setupGameTitleLabel()
-        setupResetButton()
-        game.resetGameState()
-        // setup 3 by 3 buttons
-        for row in 0..<3 {
-            for col in 0..<3 {
-                //we construct the button base on row and col value
-                constructButtonAt(row, col: col)
+        for row in 1...3 {
+            for col in 1...3 {
+                constructButtonAt(row: row, col: col)
             }
         }
-
+        constructReset()
+        resetGameState()
     }
-
-
-    // MARK: - Constrains
-    func setupContainerView() {
-        view.addSubview(containerView)
-        containerView.centerXAnchor.constraintEqualToAnchor(view.centerXAnchor).active = true
-        containerView.centerYAnchor.constraintEqualToAnchor(view.centerYAnchor, constant: 10).active = true
-        containerView.heightAnchor.constraintEqualToConstant(320).active = true
-        containerView.widthAnchor.constraintEqualToConstant(260).active = true
+    
+    func constructButtonAt(row: Int, col: Int) {
+        let xValue = ((col - 1) * 90) + 80 // point, we are shifting by
+        let yValue = ((row - 1) * 90) + 170
+        
+        let frame = CGRect(x: xValue, y: yValue, width: 80, height: 80)
+        let button = UIButton(frame: frame)
+        button.backgroundColor = .white
+        button.tag = Int(String(row) + String(col))!
+        button.addTarget(self, action: #selector(handleButtonTapped), for: .touchUpInside)
+        view.addSubview(button)
+        
     }
-
-    func setupGameTitleLabel() {
-        view.addSubview(gameTitleLabel)
-        gameTitleLabel.text = resetGameTitleName
-        gameTitleLabel.bottomAnchor.constraintEqualToAnchor(containerView.topAnchor, constant: -10).active = true
-        gameTitleLabel.centerXAnchor.constraintEqualToAnchor(view.centerXAnchor).active = true
-        gameTitleLabel.heightAnchor.constraintEqualToConstant(20).active = true
-        gameTitleLabel.leftAnchor.constraintEqualToAnchor(view.leftAnchor, constant: 20).active = true
-        gameTitleLabel.rightAnchor.constraintEqualToAnchor(view.rightAnchor, constant: -20).active = true
+    
+    func constructReset() {
+        let frame = CGRect(x: 130, y: 550, width: 130, height: 80)
+        let resetButton = UIButton(frame: frame)
+        resetButton.backgroundColor = .red
+        resetButton.titleLabel?.font = UIFont(name:"Futura", size: 30)
+        resetButton.setTitle("Let's play", for: .normal)
+        resetButton.addTarget(self, action: #selector(handleResetTapped), for: .touchUpInside)
+        view.addSubview(resetButton)
     }
-
-    func setupResetButton() {
-        containerView.addSubview(resetButton)
-        resetButton.setTitle(resetButtonName, forState: .Normal)
-        resetButton.setTitleColor(.whiteColor(), forState: .Normal)
-        resetButton.backgroundColor = .blueColor()
-        resetButton.addTarget(self, action: #selector(handleResetButton), forControlEvents: .TouchUpInside)
-
-        resetButton.bottomAnchor.constraintEqualToAnchor(containerView.bottomAnchor).active = true
-        resetButton.centerXAnchor.constraintEqualToAnchor(containerView.centerXAnchor).active = true
-        resetButton.heightAnchor.constraintEqualToConstant(50).active = true
-        resetButton.widthAnchor.constraintEqualToConstant(100).active = true
+    
+    func handleButtonTapped (button: UIButton) {
+        button.isEnabled = false
+        let gridIndex = button.tag
+        let gridRow = (gridIndex / 10) - 1
+        let gridCol = (gridIndex % 10) - 1
+        if isFirst {
+            button.backgroundColor = .black
+            ticTacState[gridRow][gridCol] = State.p1
+            button.setTitle("X", for: .normal)
+            button.titleLabel?.font = UIFont(name:"Futura", size: 30)
+            isFirst = false
+        } else {
+            button.backgroundColor = .black
+            ticTacState[gridRow][gridCol] = State.p2
+            button.setTitle("O", for: .normal)
+            button.titleLabel?.font = UIFont(name:"Futura", size: 30)
+            isFirst = true
+        }
+        
+        var player1check = checkWinner(player: .p1, board: ticTacState)
+        
+        var player2check = checkWinner(player: .p2, board: ticTacState)
+        
+        if player1check == "p1 wins" || player2check == "p2 wins" {
+            button.setTitle("Win!", for: .normal)
+        }
     }
-
-    func resetAllButtons(shouldResetButtonColor resetColor: Bool, shouldEnableButton: Bool) {
-        for v in containerView.subviews {
-            if let button = v as? UIButton {
-                if let title = button.currentTitle {
-                    if title != resetButtonName {
-                        if resetColor {
-                            button.backgroundColor = .blueColor()
-                        }
-                        button.enabled = shouldEnableButton
-                    }
+    
+    func handleResetTapped() {
+        setupGameBoard()
+    }
+    
+    func resetGameState() {
+        for _ in 0..<3 {
+            let row = Array(repeating: State.empty, count: 3)
+            ticTacState.append(row)
+        }
+    }
+    
+    func checkWinner(player: State, board: [[State]]) -> String {
+        let player = player
+        
+        //refactor all this as loops. love yourself
+        
+        func checkAllRowWinner() -> Bool {
+            if ticTacState[0][0] == player
+                && ticTacState[0][1] == player
+                && ticTacState[0][2] == player {
+                    return true
+            } else if ticTacState[1][0] == player
+                && ticTacState[1][1] == player
+                && ticTacState[1][2] == player {
+                    return true
+            } else if ticTacState[2][0] == player
+                && ticTacState[2][1] == player
+                && ticTacState[2][2] == player {
+                return true
+            } else {
+                    return false
                 }
             }
+    
+        func checkAllColWinner() -> Bool {
+            if ticTacState[0][0] == player
+                && ticTacState[1][0] == player
+                && ticTacState[2][0] == player {
+                    return true
+            } else if ticTacState[0][0] == player
+                && ticTacState[1][0] == player
+                && ticTacState[2][0] == player {
+                    return true
+            } else if ticTacState[0][0] == player
+                && ticTacState[1][0] == player
+                && ticTacState[2][0] == player {
+                return true
+            } else {
+                return false
+            }
         }
+        
+        func checkAllDiagWinner() -> Bool {
+            if ticTacState[0][0] == player
+            && ticTacState[1][1] == player
+                && ticTacState[2][2] == player {
+                return true
+            } else if ticTacState[0][2] == player
+            && ticTacState[1][1] == player
+            && ticTacState[2][0] == player {
+                return true
+            } else {
+                return false
+            }
     }
-
-    func constructButtonAt(row: Int, col: Int) {
-        // we mulitiply by 90 to prevent buttons from overlapping
-        // we add 60 and 150 to make all our buttons to be in the center of the screen
-        let xValue = (col * 90)
-        let yValue = (row * 90)
-        let frame = CGRect(x: xValue, y: yValue, width: 80, height: 80)
-
-        // construct the button with frame
-        let button = UIButton(frame: frame)
-        // set the background color to blue as an initial state
-        button.backgroundColor = .blueColor()
-        // set the title to a blank string and state to normal
-        let title = "\(row),\(col)"
-        button.setTitle(title, forState: .Normal)
-        button.setTitleColor(.clearColor(), forState: .Normal)
-        // attach an action function call "handleButtonTapped"
-        button.addTarget(self, action: #selector(handleButtonTapped), forControlEvents: .TouchUpInside)
-        // once we finished constructing the button we add the button to the view
-        containerView.addSubview(button)
-    }
-
-
-    // MARK: - Button Handler
-    func handleResetButton(resetButton: UIButton) {
-        // reset all the colors... let's make a function that reset all the button colors to blue except the resetbutton itself
-        isPlayerOne = true
-        resetAllButtons(shouldResetButtonColor: true, shouldEnableButton: true)
-        game.resetGameState()
-        gameTitleLabel.text = resetGameTitleName
-    }
-
-    func handleButtonTapped(button: UIButton) {
-        // we want to disable the button once it's tapped... prevent cheaters
-        button.enabled = false
-
-        // grab the title of the button to determine the position of the button (tuple value)
-        guard let title = button.currentTitle else { return }
-        // convert string to tuple
-        let indexValue = game.convertStringToTupleFrom(title)
-
-        // isPlayerOne is always true for initial state... once button is tapped the boolean value of isPlayerOne will alternate.
-        if isPlayerOne {
-            // b4 we check for winner.... we need to set the player value in the ticTacToeState
-            game.setPlayerMarkOn(indexValue, forPlayer: .PlayerOne)
-            button.backgroundColor = .redColor()
-            isPlayerOne = false
+        let rowWinner = checkAllRowWinner()
+        let colWinner = checkAllColWinner()
+        let diagWinner = checkAllDiagWinner()
+        
+        if rowWinner == true || colWinner == true || diagWinner == true {
+            return "\(player) wins"
         } else {
-            // b4 we check for winner.... we need to set the player value in the ticTacToeState
-            game.setPlayerMarkOn(indexValue, forPlayer: .PlayerTwo)
-            button.backgroundColor = .greenColor()
-            isPlayerOne = true
-        }
-
-        // if there's a winner grab the player's Name and display it on gameTitleLabel and reset all the button color and state
-        if let playerName = game.checkForWinner() {
-            gameTitleLabel.text = playerName
-            resetAllButtons(shouldResetButtonColor: false, shouldEnableButton: false)
+            return "\(player) loses"
         }
     }
-
 }
-
